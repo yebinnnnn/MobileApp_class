@@ -73,7 +73,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-//상단바 하단바와 뒤로가기 버튼
+//상단바 하단바와 뒤로 가기 버튼
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScaffoldExample() {
