@@ -22,13 +22,16 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -57,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.myfirstapp.ui.theme.MyFirstAppTheme
 
 //6주차 레이아웃 클래스
@@ -79,40 +83,70 @@ class MainActivity : ComponentActivity() {
 fun ScaffoldExample() {
     //버튼을 위한 상태 부여
     var presses by rememberSaveable {mutableIntStateOf(0)} //Saveable 을 달아 회전 시에도 유지
+    var team1Score by rememberSaveable { mutableIntStateOf(0) }
+    var team2Score by rememberSaveable { mutableIntStateOf(0) }
+    var drawScore by rememberSaveable { mutableIntStateOf(0) }
+    var current1 by rememberSaveable { mutableIntStateOf(0) }
+    var current2 by rememberSaveable { mutableIntStateOf(0) }
     Scaffold( //탑바, 바텀바 등등 지정 가능.
         topBar = {
             CenterAlignedTopAppBar(//상단바 근데 이제 센터중심을 곁들인
                 colors = topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor=MaterialTheme.colorScheme.primary,
+                    containerColor = Color.Black,
+                    titleContentColor=Color.White,
                 ),
-                title={Text("Top App Bar")}, //이 텍스트로 상단바 구성
+                title={Text("Soccer Game")}, //이 텍스트로 상단바 구성
                 navigationIcon = { //뒤로 가기 버튼 넣기
                     IconButton(onClick = {/*TODO*/}) {
-                        androidx.compose.material3.Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Some Desc")
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Some Desc",
+                            tint = Color.White)
                     }
                 },
                 actions = { //여기에 메뉴,edit 버튼 추가 기본적으로 Rowscope 로 되어있다.
                     IconButton(onClick = {/*TODO*/}) {
                         androidx.compose.material3.Icon(
                             imageVector = Icons.Filled.Menu,
-                            contentDescription = "Menu"
+                            contentDescription = "Menu",
+                            tint = Color.White
                         )
                     }
                     IconButton(onClick = {/*TODO*/}) {
                         androidx.compose.material3.Icon(
                             imageVector = Icons.Filled.Edit,
-                            contentDescription = "Menu"
+                            contentDescription = "Menu",
+                            tint = Color.White
                         )
                     }
                 }
             )
         },
         bottomBar = { //하단바
-            BottomAppBar (actions = {
-                    IconButton(onClick = {/*TODO*/}) { //IconButton 안에는 여러 가지 넣으면 안됨
-                        androidx.compose.material3.Icon(imageVector = Icons.Filled.Check, contentDescription = "Check")
+            BottomAppBar (actions = {//액션 내 람다에서 Row 로 감싸기
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    IconButton(onClick = {/*TODO*/ }) { //IconButton 안에는 여러 가지 넣으면 안됨
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = "Check"
+                        )
                     }
+                    IconButton(onClick = {/*TODO*/ }) { //IconButton 안에는 여러 가지 넣으면 안됨
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Filled.Edit,
+                            contentDescription = "Edit"
+                        )
+                    }
+                    IconButton(onClick = {/*TODO*/ }) { //IconButton 안에는 여러 가지 넣으면 안됨
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Filled.Info,
+                            contentDescription = "Info"
+                        )
+                    }
+                }
                 },
 //                //이렇게 바 안에도 floatingActionButton 을 넣을 수 있다.
 //                floatingActionButton = {
@@ -120,10 +154,10 @@ fun ScaffoldExample() {
 //                        androidx.compose.material3.Icon(imageVector = Icons.Default.Add, contentDescription = "Add")
 //                    }
 //                }
-            )},//TopBar 는 함수,
+            )}, //TopBar 는 함수,
         floatingActionButton = {
-            FloatingActionButton(onClick = {presses+=1}) {
-                androidx.compose.material3.Icon(imageVector = Icons.Default.Add, contentDescription = "Add")
+            FloatingActionButton(onClick = {team1Score=0; team2Score=0; drawScore=0; current2=0; current1=0}) {
+                androidx.compose.material3.Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh")
             }
         }
     ) { innerPadding ->
@@ -136,34 +170,70 @@ fun ScaffoldExample() {
             //fillMaxHeight().padding(innerPadding) 이렇게 하면 높이만
         ) {
             //Card{} 안에 아래 Text 와 Button 을 집어 넣을 수도 있다.
-            OutlinedCard( //카드 꾸미기
+            ElevatedCard( //카드 꾸미기
 //                elevation = CardDefaults.cardElevation(
 //                    defaultElevation = 6.dp
 //                ),
                 colors = CardDefaults.cardColors(
                     contentColor=MaterialTheme.colorScheme.primary
                 ),
-                border = BorderStroke(1.dp, Color.Black)
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 6.dp
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp),
+
             ){
                 Column (
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(vertical = 32.dp)
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                 ){
                     Text(
                         modifier = Modifier.padding(8.dp),
-                        text="""
-                                        This is an example of a Scaffold
-                                        
-                                        You have pressed the floating action button $presses times
-                                        """.trimIndent()
+                        text="Soccer Score",
+                        fontWeight = FontWeight.Bold,
+                        color=Color.Black,
+                        fontSize = 32.sp,
                     )
-                    //Elevated 버튼도 이쁨 , TextButton 은 텍스트 만 존재.
-                    ElevatedButton(onClick = {/*TODO*/}){ //OutlinedButton, FilledTonerButton 등 사용 가능
-                        Text("Filled")
+                    Text(
+                        modifier = Modifier.padding(2.dp),
+                        text="$current1   :   $current2",
+                        fontWeight = FontWeight.Bold,
+                        color=Color.Black,
+                        fontSize = 48.sp
+                    )
+                    Row(){
+                        //Elevated 버튼도 이쁨 , TextButton 은 텍스트 만 존재.
+                        Button(onClick = {current1+=1},
+                            modifier = Modifier.padding(20.dp)){ //OutlinedButton, FilledTonerButton 등 사용 가능
+                            Text("Goal")
+                        }
+                        //Elevated 버튼도 이쁨 , TextButton 은 텍스트 만 존재.
+                        Button(onClick = {current2+=1},
+                            modifier = Modifier.padding(20.dp)){ //OutlinedButton, FilledTonerButton 등 사용 가능
+                            Text("Goal")
+                        }
                     }
                 }
             }
+            ElevatedButton(
+                onClick = {
+                if(current2>current1){team2Score+=1}
+                if(current1>current2){team1Score+=1}
+                if(team1Score==team2Score){drawScore+=1;}
+                current1=0;current2=0;
+            },
+                modifier=Modifier.padding(24.dp),
+                ){ //OutlinedButton, FilledTonerButton 등 사용 가능
+                Text("Game Over")
+            }
+            Text(
+                modifier = Modifier.padding(8.dp),
+                text="Team1:$team1Score draw:$drawScore :Team2:$team2Score",
+                color = Color.Black,
+            )
         }
     }
 }
