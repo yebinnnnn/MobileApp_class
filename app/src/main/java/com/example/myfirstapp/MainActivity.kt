@@ -4,66 +4,50 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.BottomAppBar
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedButton
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
-import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.modifier.modifierLocalProvider
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.myfirstapp.ui.theme.MyFirstAppTheme
+import kotlin.math.pow
 
-//6주차 레이아웃 클래스
+//7주차 사용자 입력 및 레이아웃 클래스
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,172 +55,231 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MyFirstAppTheme {
-                ScaffoldExample()
+                val viewModel = viewModel<BmiViewModel>()
+                val navController = rememberNavController()
+
+                val bmi = viewModel.result.value //viewModel 이 바뀌면 업데이트
+
+                NavHost(navController=navController, startDestination= "main"){
+                    composable(route="main"){
+                        MainScreen{height, weight, selectedOption, checked ->
+                            viewModel.bmiCalculate(height, weight, selectedOption, checked)
+                            navController.navigate(route= "analysis/$bmi")
+                        } //viewModel 안에 있는 bmi 값 업데이트 됨
+                    }
+                    //analysis로 값을 넘기기 위한 수정 navBackstackentry
+                    composable(route="analysis/{value}"){//i를 입력받아서
+                        AnalysisScreen(
+                            navController=navController,
+                            result = bmi,
+                            //result= it.arguments?.getString("value") ?: ""
+                            //value 라는것에 대한 String을 받겠다, Nullable 에서 mismatch->?로 NUll 처리
+                        )
+                    }
+                }
             }
         }
     }
 }
 
-//상단바 하단바와 뒤로 가기 버튼
+//result 값의 효율적인 관리를 위해 ViewModel 사용한다.-> 클래스 생성!
+class BmiViewModel : ViewModel(){
+    //viewmodel 은 rememeberSavavle을 쓰지 않아도 된다. 어차피 Composer 가 아니라서 재호출안됨.
+    //다른 방법으로는 result 를 사용하지 않게 val 사용.
+    private val _result = mutableStateOf("Default")
+    val result: State<String> = _result
+
+    //bmi 계산 함수
+    fun bmiCalculate(
+        height:Double, weight: Double, selectedOption: String, checked: Boolean
+    ){
+        val resultList = listOf(
+            "Underweight",
+            "Normal",
+            "Overweight",
+            "Obese",
+            "Not Allowed"
+        )
+        val bmi= weight/ (height/100.0).pow(2.0)
+        if(checked){
+            _result.value=resultList[4]
+        }
+        when(selectedOption){
+            "Simplified"-> {
+                if (bmi>=25.0) _result.value= resultList[2]
+                else _result.value=resultList[1]
+            }
+            "Normal"-> {
+                if (bmi>=25.0) _result.value= resultList[2]
+                else if(bmi <=18.5) _result.value=resultList[0]
+                else _result.value=resultList[1]
+            }
+            "Detailed"-> {
+                if (bmi>=30.0) _result.value= resultList[3]
+                else if(bmi >=25.0) _result.value=resultList[2]
+                else if(bmi <=18.5) _result.value=resultList[0]
+                else _result.value=resultList[1]
+            }
+        }
+    }
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScaffoldExample() {
-    //버튼을 위한 상태 부여
-    var presses by rememberSaveable {mutableIntStateOf(0)} //Saveable 을 달아 회전 시에도 유지
-    var team1Score by rememberSaveable { mutableIntStateOf(0) }
-    var team2Score by rememberSaveable { mutableIntStateOf(0) }
-    var drawScore by rememberSaveable { mutableIntStateOf(0) }
-    var current1 by rememberSaveable { mutableIntStateOf(0) }
-    var current2 by rememberSaveable { mutableIntStateOf(0) }
-    Scaffold( //탑바, 바텀바 등등 지정 가능.
-        topBar = {
-            CenterAlignedTopAppBar(//상단바 근데 이제 센터중심을 곁들인
-                colors = topAppBarColors(
-                    containerColor = Color.Black,
-                    titleContentColor=Color.White,
-                ),
-                title={Text("Soccer Game")}, //이 텍스트로 상단바 구성
-                navigationIcon = { //뒤로 가기 버튼 넣기
-                    IconButton(onClick = {/*TODO*/}) {
-                        androidx.compose.material3.Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Some Desc",
-                            tint = Color.White)
-                    }
-                },
-                actions = { //여기에 메뉴,edit 버튼 추가 기본적으로 Rowscope 로 되어있다.
-                    IconButton(onClick = {/*TODO*/}) {
-                        androidx.compose.material3.Icon(
-                            imageVector = Icons.Filled.Menu,
-                            contentDescription = "Menu",
-                            tint = Color.White
-                        )
-                    }
-                    IconButton(onClick = {/*TODO*/}) {
-                        androidx.compose.material3.Icon(
-                            imageVector = Icons.Filled.Edit,
-                            contentDescription = "Menu",
-                            tint = Color.White
-                        )
-                    }
-                }
-            )
-        },
-        bottomBar = { //하단바
-            BottomAppBar (actions = {//액션 내 람다에서 Row 로 감싸기
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    IconButton(onClick = {/*TODO*/ }) { //IconButton 안에는 여러 가지 넣으면 안됨
-                        androidx.compose.material3.Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = "Check"
-                        )
-                    }
-                    IconButton(onClick = {/*TODO*/ }) { //IconButton 안에는 여러 가지 넣으면 안됨
-                        androidx.compose.material3.Icon(
-                            imageVector = Icons.Filled.Edit,
-                            contentDescription = "Edit"
-                        )
-                    }
-                    IconButton(onClick = {/*TODO*/ }) { //IconButton 안에는 여러 가지 넣으면 안됨
-                        androidx.compose.material3.Icon(
-                            imageVector = Icons.Filled.Info,
-                            contentDescription = "Info"
-                        )
-                    }
-                }
-                },
-//                //이렇게 바 안에도 floatingActionButton 을 넣을 수 있다.
-//                floatingActionButton = {
-////                    FloatingActionButton(onClick = {presses+=1}) {
-//                        androidx.compose.material3.Icon(imageVector = Icons.Default.Add, contentDescription = "Add")
-//                    }
-//                }
-            )}, //TopBar 는 함수,
-        floatingActionButton = {
-            FloatingActionButton(onClick = {team1Score=0; team2Score=0; drawScore=0; current2=0; current1=0}) {
-                androidx.compose.material3.Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh")
-            }
-        }
-    ) { innerPadding ->
-        Column (
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            //verticalArrangement = Arrangement.padding(16.dp)
-            // 각각의 컴포넌트 사이의 간격 설정!, 및 위치 설정
-            modifier = Modifier.fillMaxSize().padding(innerPadding)
-            //fillMaxHeight().padding(innerPadding) 이렇게 하면 높이만
-        ) {
-            //Card{} 안에 아래 Text 와 Button 을 집어 넣을 수도 있다.
-            ElevatedCard( //카드 꾸미기
-//                elevation = CardDefaults.cardElevation(
-//                    defaultElevation = 6.dp
-//                ),
-                colors = CardDefaults.cardColors(
-                    contentColor=MaterialTheme.colorScheme.primary
-                ),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = 6.dp
-                ),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp),
+fun MainScreen(onResultClicked: (Double, Double, String,Boolean)->Unit){
+    var height by rememberSaveable { mutableStateOf( " ") }
+    var weight by rememberSaveable { mutableStateOf( " ") }
+    //아래 변수들 여기 모아놓는게 바람직
+    var selectedOption by rememberSaveable { mutableStateOf("Normal") }
+    var checked by rememberSaveable { mutableStateOf(false) }
+    var result by rememberSaveable { mutableStateOf("Default") }
 
-            ){
-                Column (
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-                ){
-                    Text(
-                        modifier = Modifier.padding(8.dp),
-                        text="Soccer Score",
-                        fontWeight = FontWeight.Bold,
-                        color=Color.Black,
-                        fontSize = 32.sp,
-                    )
-                    Text(
-                        modifier = Modifier.padding(2.dp),
-                        text="$current1   :   $current2",
-                        fontWeight = FontWeight.Bold,
-                        color=Color.Black,
-                        fontSize = 48.sp
-                    )
-                    Row(){
-                        //Elevated 버튼도 이쁨 , TextButton 은 텍스트 만 존재.
-                        Button(onClick = {current1+=1},
-                            modifier = Modifier.padding(20.dp)){ //OutlinedButton, FilledTonerButton 등 사용 가능
-                            Text("Goal")
-                        }
-                        //Elevated 버튼도 이쁨 , TextButton 은 텍스트 만 존재.
-                        Button(onClick = {current2+=1},
-                            modifier = Modifier.padding(20.dp)){ //OutlinedButton, FilledTonerButton 등 사용 가능
-                            Text("Goal")
-                        }
+    Scaffold (
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(title = { Text("Obesity Analysis") })
+        }
+    ){ innerPadding->
+        Column (
+            modifier= Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp)
+        ){
+            //입력하는 것. 어떤 값에 해당되는 지 넣어줘야 함.
+            //height 를 다시 반영해 MainScreen 재호출.
+            OutlinedTextField(
+                value=height,
+                onValueChange={height=it},//하나일땐 it. {input->height = input}
+                label={Text("Height")}, //라벨 입력가능!
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),//숫자 입력되게 키보드 변경
+                modifier = Modifier.fillMaxWidth()
+                )
+            //몸무게 다루는 아웃라인텍스트 필드 하나 더 생성
+            OutlinedTextField(
+                value=weight,
+                onValueChange={ weight=it },//하나일땐 it. {input->height = input}
+                label={Text("Weight")}, //라벨 입력가능!
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),//숫자 입력되게 키보드 변경
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.padding(vertical = 16.dp))
+            Text("Choose the analysis style")
+            //아래의 RadioButtonSet 함수 적용
+            //변수 이동과 입력값에 따라 함수 수정
+            RadioButtonSet(selectedOption = selectedOption, onChange = {selectedOption=it})
+            Spacer(modifier = Modifier.padding(vertical = 16.dp))
+            CheckBoxset(checked = checked, onChange = {checked=it})
+            Spacer(modifier = Modifier.padding(16.dp))//component 들 사이 거리띄울 때 사용
+            ElevatedButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    if(height.isNotEmpty() && weight.isNotEmpty()) {
+                        onResultClicked(
+                            height.toDouble(),
+                            weight.toDouble(),
+                            selectedOption,
+                            checked
+                        )
                     }
                 }
+            ){
+                Text("Enter")
+
             }
-            ElevatedButton(
-                onClick = {
-                if(current2>current1){team2Score+=1}
-                if(current1>current2){team1Score+=1}
-                if(team1Score==team2Score){drawScore+=1;}
-                current1=0;current2=0;
-            },
-                modifier=Modifier.padding(24.dp),
-                ){ //OutlinedButton, FilledTonerButton 등 사용 가능
-                Text("Game Over")
-            }
-            Text(
-                modifier = Modifier.padding(8.dp),
-                text="Team1:$team1Score draw:$drawScore :Team2:$team2Score",
-                color = Color.Black,
-            )
         }
     }
 }
+
+//네비게이션 클래스. 의존성 추가 필수
+//AnalysisScreen 에 앞에 입력한 변수들을 넘겨줘야 한다. NavHost 이용하기.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AnalysisScreen(navController: NavController, result: String) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text("Analysis Result")},
+                navigationIcon = {
+                    //onClick에 navController 반영
+                    IconButton (onClick = { navController.navigateUp() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = ""
+                        )
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = "Your obesity result is ....", fontSize = 15.sp)
+            Spacer(modifier = Modifier.padding(vertical = 16.dp))//spacer 는 이렇게 사이에 들어가서 공간을 만듬.
+            Text(text = result , fontSize = 30.sp)
+        }
+    }
+}
+
+@Composable
+fun RadioButtonSet(selectedOption: String, onChange: (String)-> Unit){
+    val radioOptions= listOf("Simplified", "Normal", "Detailed")
+    //아래의 버튼 클릭에 따라 selectedOption값 변화.
+    Column (){
+        //Row 가 새가지로 비슷하게 세개나 생길때
+        radioOptions.forEach{i ->
+            Row (
+                verticalAlignment = Alignment.CenterVertically
+            ){
+                //selected 가 boolean 타입. Simplified 가 선택된게 맞으면 True.
+                RadioButton(selected = (i== selectedOption), onClick = { onChange(i)})
+                Text(text= i )
+            }
+        }
+//        Row (
+//            verticalAlignment = Alignment.CenterVertically
+//        ){
+//            //selected 가 boolean 타입. Simplified 가 선택된게 맞으면 True.
+//            RadioButton(selected = ("Simplified"== selectedOption), onClick = { onChange("Simplified")})
+//            Text("Simplified")
+//        }
+//        Row (
+//            verticalAlignment = Alignment.CenterVertically
+//        ){
+//            //selected 가 boolean 타입. Simplified 가 선택된게 맞으면 True.
+//            RadioButton(selected = ("Normal"== selectedOption), onClick = {onChange("Normal")})
+//            Text("Normal")
+//        }
+//        Row (
+//            verticalAlignment = Alignment.CenterVertically
+//        ){
+//            //selected 가 boolean 타입. Simplified 가 선택된게 맞으면 True.
+//            RadioButton(selected = ("Detailed"== selectedOption), onClick = { onChange("Detailed")})
+//            Text("Detailed")
+//        }
+    }
+}
+
+@Composable
+fun CheckBoxset(checked: Boolean, onChange: (Boolean) -> Unit){
+    Row(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
+
+
+    ){
+        Text("Do you agree to the analysis of your height and weight?")
+        Checkbox(checked = checked, onCheckedChange= {onChange(it)},
+            modifier = Modifier.padding(horizontal = 8.dp))
+    }
+}
+
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Text(
