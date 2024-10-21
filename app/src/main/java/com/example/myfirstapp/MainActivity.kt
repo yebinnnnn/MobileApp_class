@@ -101,8 +101,9 @@ class BmiViewModel : ViewModel(){
             "Not Allowed"
         )
         val bmi= weight/ (height/100.0).pow(2.0)
-        if(checked){
+        if(!checked){
             _result.value=resultList[4]
+            return
         }
         when(selectedOption){
             "Simplified"-> {
