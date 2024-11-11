@@ -5,12 +5,12 @@ plugins {
 
 android {
     namespace = "com.example.myfirstapp"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.myfirstapp"
         minSdk = 34
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -73,4 +73,5 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     //Navigation
     implementation(libs.androidx.navigation.compose)
+    implementation(kotlin("script-runtime"))
 }
